@@ -240,7 +240,7 @@ local Library = {
     WhiteColor = Color3.fromRGB(245, 240, 255),        
 
     WindowGlow = true,
-}
+},
 
     Registry = {},
 	Scales = {},
