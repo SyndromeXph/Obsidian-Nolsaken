@@ -1,20 +1,14 @@
-local cloneref = (cloneref or clonereference or function(instance: any)
-    return instance
-end)
-local clonefunction = (clonefunction or copyfunction or function(func) 
-    return func 
-end)
-
-local HttpService: HttpService = cloneref(game:GetService("HttpService"))
+local cloneref = (cloneref or clonereference or function(instance: any) return instance end)
+local httpService = cloneref(game:GetService("HttpService"))
 local isfolder, isfile, listfiles = isfolder, isfile, listfiles
 
-if typeof(clonefunction) == "function" then
+if typeof(copyfunction) == "function" then
     -- Fix is_____ functions for shitsploits, those functions should never error, only return a boolean.
 
     local
         isfolder_copy,
         isfile_copy,
-        listfiles_copy = clonefunction(isfolder), clonefunction(isfile), clonefunction(listfiles)
+        listfiles_copy = copyfunction(isfolder), copyfunction(isfile), copyfunction(listfiles)
 
     local isfolder_success, isfolder_error = pcall(function()
         return isfolder_copy("test" .. tostring(math.random(1000000, 9999999)))
@@ -68,7 +62,7 @@ local SaveManager = {} do
         },
         Dropdown = {
             Save = function(idx, object)
-                return { type = "Dropdown", idx = idx, value = object.Value, multi = object.Multi }
+                return { type = "Dropdown", idx = idx, value = object.Value, mutli = object.Multi }
             end,
             Load = function(idx, data)
                 local object = SaveManager.Library.Options[idx]
@@ -225,7 +219,7 @@ local SaveManager = {} do
             table.insert(data.objects, self.Parser[option.Type].Save(idx, option))
         end
 
-        local success, encoded = pcall(HttpService.JSONEncode, HttpService, data)
+        local success, encoded = pcall(httpService.JSONEncode, httpService, data)
         if not success then
             return false, "failed to encode data"
         end
@@ -247,13 +241,12 @@ local SaveManager = {} do
 
         if not isfile(file) then return false, "invalid file" end
 
-        local success, decoded = pcall(HttpService.JSONDecode, HttpService, readfile(file))
+        local success, decoded = pcall(httpService.JSONDecode, httpService, readfile(file))
         if not success then return false, "decode error" end
 
         for _, option in pairs(decoded.objects) do
             if not option.type then continue end
             if not self.Parser[option.type] then continue end
-            if self.Ignore[option.idx] then continue end
 
             task.spawn(self.Parser[option.type].Load, option.idx, option) -- task.spawn() so the config loading wont get stuck.
         end
@@ -362,14 +355,12 @@ local SaveManager = {} do
         if isfile(autoLoadPath) then
             local successRead, name = pcall(readfile, autoLoadPath)
             if not successRead then
-                self.Library:Notify("Failed to load autoload config: write file error")
-                return
+                return self.Library:Notify("Failed to load autoload config: write file error")
             end
 
             local success, err = self:Load(name)
             if not success then
-                self.Library:Notify("Failed to load autoload config: " .. err)
-                return
+                return self.Library:Notify("Failed to load autoload config: " .. err)
             end
 
             self.Library:Notify(string.format("Auto loaded config %q", name))
@@ -408,97 +399,91 @@ local SaveManager = {} do
     function SaveManager:BuildConfigSection(tab)
         assert(self.Library, "Must set SaveManager.Library")
 
-        local section = tab:AddRightGroupbox("Configuration", "folder-cog")
+        local section = tab:AddRightGroupbox("配置", "folder-cog")
 
-        section:AddInput("SaveManager_ConfigName",    { Text = "Config name" })
-        section:AddButton("Create config", function()
+        section:AddInput("SaveManager_ConfigName",    { Text = "配置名称" })
+        section:AddButton("创建配置", function()
             local name = self.Library.Options.SaveManager_ConfigName.Value
 
             if name:gsub(" ", "") == "" then
-                self.Library:Notify("Invalid config name (empty)", 2)
-                return
+                return self.Library:Notify("无效的配置名称(空)", 2)
             end
 
             local success, err = self:Save(name)
             if not success then
-                self.Library:Notify("Failed to create config: " .. err)
-                return
+                return self.Library:Notify("无法创建配置: " .. err)
             end
 
-            self.Library:Notify(string.format("Created config %q", name))
+            self.Library:Notify(string.format("创建的配置 %q", name))
+
             self.Library.Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
             self.Library.Options.SaveManager_ConfigList:SetValue(nil)
         end)
 
         section:AddDivider()
 
-        section:AddDropdown("SaveManager_ConfigList", { Text = "Config list", Values = self:RefreshConfigList(), AllowNull = true })
-        section:AddButton("Load config", function()
+        section:AddDropdown("SaveManager_ConfigList", { Text = "配置列表", Values = self:RefreshConfigList(), AllowNull = true })
+        section:AddButton("加载配置", function()
             local name = self.Library.Options.SaveManager_ConfigList.Value
 
             local success, err = self:Load(name)
             if not success then
-                self.Library:Notify("Failed to load config: " .. err)
-                return
+                return self.Library:Notify("无法加载配置: " .. err)
             end
 
-            self.Library:Notify(string.format("Loaded config %q", name))
+            self.Library:Notify(string.format("加载的配置 %q", name))
         end)
-        section:AddButton("Overwrite config", function()
+        section:AddButton("覆盖配置", function()
             local name = self.Library.Options.SaveManager_ConfigList.Value
 
             local success, err = self:Save(name)
             if not success then
-                self.Library:Notify("Failed to overwrite config: " .. err)
-                return
+                return self.Library:Notify("无法覆盖配置: " .. err)
             end
 
-            self.Library:Notify(string.format("Overwrote config %q", name))
+            self.Library:Notify(string.format("覆盖配置 %q", name))
         end)
 
-        section:AddButton("Delete config", function()
+        section:AddButton("删除配置", function()
             local name = self.Library.Options.SaveManager_ConfigList.Value
 
             local success, err = self:Delete(name)
             if not success then
-                self.Library:Notify("Failed to delete config: " .. err)
-                return
+                return self.Library:Notify("无法删除配置: " .. err)
             end
 
-            self.Library:Notify(string.format("Deleted config %q", name))
+            self.Library:Notify(string.format("删除的配置 %q", name))
             self.Library.Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
             self.Library.Options.SaveManager_ConfigList:SetValue(nil)
         end)
 
-        section:AddButton("Refresh list", function()
+        section:AddButton("刷新列表", function()
             self.Library.Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
             self.Library.Options.SaveManager_ConfigList:SetValue(nil)
         end)
 
-        section:AddButton("Set as autoload", function()
+        section:AddButton("设置为自动加载", function()
             local name = self.Library.Options.SaveManager_ConfigList.Value
 
             local success, err = self:SaveAutoloadConfig(name)
             if not success then
-                self.Library:Notify("Failed to set autoload config: " .. err)
-                return
+                return self.Library:Notify("无法设置自动加载配置: " .. err)
             end
 
-            self.Library:Notify(string.format("Set %q to auto load", name))
-            self.AutoloadConfigLabel:SetText("Current autoload config: " .. name)
+            SaveManager.AutoloadLabel:SetText("当前自动加载配置: " .. name)
+            self.Library:Notify(string.format("将 %q 设置为自动加载", name))
         end)
-        section:AddButton("Reset autoload", function()
+        section:AddButton("重置自动装载", function()
             local success, err = self:DeleteAutoLoadConfig()
             if not success then
-                self.Library:Notify("Failed to set autoload config: " .. err)
-                return
+                return self.Library:Notify("无法设置自动加载配置: " .. err)
             end
 
-            self.Library:Notify("Set autoload to none")
-            self.AutoloadConfigLabel:SetText("Current autoload config: none")
+            self.Library:Notify("将自动加载设置为无")
+            SaveManager.AutoloadLabel:SetText("当前自动加载配置:无")
         end)
 
-        self.AutoloadConfigLabel = section:AddLabel("Current autoload config: " .. self:GetAutoloadConfig(), true)
+        self.AutoloadLabel = section:AddLabel("当前自动加载配置: " .. self:GetAutoloadConfig(), true)
 
         -- self:LoadAutoloadConfig()
         self:SetIgnoreIndexes({ "SaveManager_ConfigList", "SaveManager_ConfigName" })
